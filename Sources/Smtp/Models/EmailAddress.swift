@@ -4,7 +4,7 @@
 //  Licensed under the MIT License.
 //
 
-public struct EmailAddress {
+public struct EmailAddress: Codable {
     public let address: String
     public let name: String?
 

@@ -6,7 +6,7 @@
 
 import Foundation
 
-public struct Attachment {
+public struct Attachment: Codable {
     public let name: String
     public let contentType: String
     public let data: Data
