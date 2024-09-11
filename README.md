@@ -31,7 +31,7 @@ You need to add library to `Package.swift` file:
 
  - add package to dependencies:
 ```swift
-.package(url: "https://github.com/Mikroservices/Smtp.git", from: "3.0.0")
+.package(url: "https://github.com/PassiveLogic/Smtp.git", from: "3.0.0")
 ```
 
 - and add product to your target:
@@ -132,7 +132,7 @@ request.smtp.send(email) { message in
 After cloning the repository you can open it in Xcode.
 
 ```bash
-$ git clone https://github.com/Mikroservices/Smtp.git
+$ git clone https://github.com/PassiveLogic/Smtp.git
 $ cd Smtp
 $ open Package.swift
 ```
