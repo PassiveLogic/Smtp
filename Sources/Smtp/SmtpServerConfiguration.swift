@@ -14,10 +14,12 @@ public struct SmtpServerConfiguration {
     public var connectTimeout:TimeAmount
     public var helloMethod: HelloMethod
     public var signInMethod: SignInMethod
+    public var authMethod: AuthType
 
     public init(hostname: String = "",
                 port: Int = 465,
                 signInMethod: SignInMethod = .anonymous,
+                authMethod: AuthType = .login,
                 secure: SmtpSecureChannel = .none,
                 connectTimeout: TimeAmount = TimeAmount.seconds(10),
                 helloMethod: HelloMethod = .helo
@@ -28,5 +30,6 @@ public struct SmtpServerConfiguration {
         self.connectTimeout = connectTimeout
         self.helloMethod = helloMethod
         self.signInMethod = signInMethod
+        self.authMethod = authMethod
     }
 }

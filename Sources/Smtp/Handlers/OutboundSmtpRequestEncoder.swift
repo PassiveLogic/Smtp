@@ -29,14 +29,22 @@ internal final class OutboundSmtpRequestEncoder: MessageToByteEncoder {
             email.write(to: &out)
         case .quit:
             out.writeString("QUIT")
-        case .beginAuthentication:
-            out.writeString("AUTH LOGIN")
+        case .beginAuthentication(let authType):
+            switch authType {
+                case .login:
+                    out.writeString("AUTH LOGIN")
+                case .oAuth:
+                    out.writeString("AUTH XOAUTH2")
+            }
         case .authUser(let user):
             let userData = Data(user.utf8)
             out.writeBytes(userData.base64EncodedData())
         case .authPassword(let password):
             let passwordData = Data(password.utf8)
             out.writeBytes(passwordData.base64EncodedData())
+        case .oAuthLogin(user: let user, accessToken: let accessToken):
+            let loginData = Data("user=\(user)\u{0001}auth=Bearer \(accessToken)\u{0001}\u{0001}".utf8)
+            out.writeBytes(loginData.base64EncodedData())
         }
 
         out.writeString("\r\n")

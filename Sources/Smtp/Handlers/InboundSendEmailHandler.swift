@@ -19,6 +19,7 @@ internal final class InboundSendEmailHandler: ChannelInboundHandler {
         case okAfterAuthBegin
         case okAfterUsername
         case okAfterPassword
+        case okAfterOAuth
         case okAfterMailFrom
         case okAfterRecipient
         case okAfterDataCommand
@@ -76,29 +77,29 @@ internal final class InboundSendEmailHandler: ChannelInboundHandler {
             )
             self.currentlyWaitingFor = .okAfterHello
         case .okAfterHello:
-
             if self.shouldInitializeTls() {
                 self.send(context: context, command: .startTls)
                 self.currentlyWaitingFor = .okAfterStartTls
             } else {
                 switch self.serverConfiguration.signInMethod {
                 case .credentials(_, _):
-                    self.send(context: context, command: .beginAuthentication)
+                    self.send(context: context, command: .beginAuthentication(authType: self.serverConfiguration.authMethod))
                     self.currentlyWaitingFor = .okAfterAuthBegin
                 case .anonymous:
                     self.send(context: context, command: .mailFrom(self.email.from.address))
                     self.currentlyWaitingFor = .okAfterMailFrom
+                case .oAuth(_, _):
+                    self.send(context: context, command: .beginAuthentication(authType: self.serverConfiguration.authMethod))
+                    self.currentlyWaitingFor = .okAfterAuthBegin
                 }
             }
-
         case .okAfterStartTls:
             self.send(context: context, command: .sayHelloAfterTls(serverName: self.serverConfiguration.hostname, helloMethod:  self.serverConfiguration.helloMethod))
             self.currentlyWaitingFor = .okAfterStartTlsHello
         case .okAfterStartTlsHello:
-            self.send(context: context, command: .beginAuthentication)
+            self.send(context: context, command: .beginAuthentication(authType: self.serverConfiguration.authMethod))
             self.currentlyWaitingFor = .okAfterAuthBegin
         case .okAfterAuthBegin:
-            
             switch self.serverConfiguration.signInMethod {
             case .credentials(let username, _):
                 self.send(context: context, command: .authUser(username))
@@ -106,8 +107,10 @@ internal final class InboundSendEmailHandler: ChannelInboundHandler {
             case .anonymous:
                 self.allDonePromise.fail(SmtpError("After auth begin executed for anonymous sign in method"))
                 break;
+            case .oAuth(accessToken: let accessToken, username: let user):
+                self.send(context: context, command: .oAuthLogin(user: user, accessToken: accessToken))
+                self.currentlyWaitingFor = .okAfterOAuth
             }
-
         case .okAfterUsername:
             switch self.serverConfiguration.signInMethod {
             case .credentials(_, let password):
@@ -116,8 +119,10 @@ internal final class InboundSendEmailHandler: ChannelInboundHandler {
             case .anonymous:
                 self.allDonePromise.fail(SmtpError("After user name executed for anonymous sign in method"))
                 break;
+            case .oAuth(_,_):
+                self.allDonePromise.fail(SmtpError("Login auth method requested on OAuth configured channel."))
+                break;
             }
-
         case .okAfterPassword:
             self.send(context: context, command: .mailFrom(self.email.from.address))
             self.currentlyWaitingFor = .okAfterMailFrom
@@ -143,6 +148,9 @@ internal final class InboundSendEmailHandler: ChannelInboundHandler {
             () // ignoring more data whilst quit (it's odd though)
         case .error:
             self.allDonePromise.fail(SmtpError("Communication error state"))
+        case .okAfterOAuth:
+            self.send(context: context, command: .mailFrom(self.email.from.address))
+            self.currentlyWaitingFor = .okAfterMailFrom
         }
     }
 
